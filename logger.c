@@ -3,9 +3,11 @@
 #include <assert.h>
 #include <time.h>
 #include <stdarg.h>
+#include <stdlib.h>
 
 #ifdef _WIN32
-#error IMPLEMENTATION IS UNIX-ONLY FOR NOW
+#include <windows.h>
+#pragma execution_character_set( "utf-8" )
 #endif
 
 struct __logger_ctx {
@@ -29,6 +31,19 @@ static struct __logger_ctx logger_ctx =  {
 void logger_init(FILE* output) {
     assert(output);
     logger_ctx.output = output;
+    
+    const char* term = getenv("TERM");
+    if (term == NULL ||
+        (strstr(term, "xterm") == NULL && strstr(term, "screen") == NULL && strstr(term, "ansi") == NULL)) {
+        log_message(LOG_TRACE, "Color likely not supported in terminal");
+        logger_ctx.color = false;
+    }
+
+#ifdef _WIN32
+    // wine hates me, so I can't really test if this works without creating windows VM
+    SetConsoleOutputCP(65001);
+    SetConsoleCP(65001);
+#endif
 }
 
 void set_log_level(LogLevel level) {
